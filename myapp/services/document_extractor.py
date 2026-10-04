@@ -180,7 +180,11 @@ def process_document_upload(upload):
         _mark_upload_failed(upload, str(error))
         return False
     except APIError:
-        logger.exception("Gemini API request failed for upload %s", upload.pk)
+        logger.exception(
+            "Gemini API request failed for upload %s: %s",
+            upload.pk,
+            error,
+        )
         _mark_upload_failed(
             upload,
             "The announcement service couldn't process this file right now. "
