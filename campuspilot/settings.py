@@ -34,6 +34,10 @@ ALLOWED_HOSTS = os.getenv(
     "127.0.0.1,localhost"
 ).split(",")
 
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 # Production security settings
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
