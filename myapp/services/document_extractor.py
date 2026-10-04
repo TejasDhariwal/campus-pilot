@@ -179,7 +179,11 @@ def process_document_upload(upload):
         logger.exception("Gemini returned unusable data for upload %s", upload.pk)
         _mark_upload_failed(upload, str(error))
         return False
-    except APIError:
+    except APIError as error:
+        print(
+            f"Gemini API request failed for upload {upload.pk}: {error}",
+            flush=True,
+        )
         logger.exception(
             "Gemini API request failed for upload %s: %s",
             upload.pk,
