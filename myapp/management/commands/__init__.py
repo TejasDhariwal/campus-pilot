@@ -1,0 +1,1 @@
+# Lets Django discover the document JSON import command in this package.

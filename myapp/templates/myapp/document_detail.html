@@ -1,0 +1,134 @@
+{% extends "myapp/base.html" %}
+
+{% block title %}{{ document.title }}{% endblock %}
+{% block breadcrumb %}<a href="{% url 'document-list-page' %}">Documents</a><span class="breadcrumb-separator">/</span><span class="breadcrumb-current">Notice detail</span>{% endblock %}
+
+{% block content %}
+    <!-- Keep the source notice and all extracted next-step details together for review. -->
+    <a class="back-link" href="{% url 'document-list-page' %}"><span aria-hidden="true">←</span> All documents</a>
+
+    <section class="detail-hero">
+        <div class="detail-hero-top">
+            <span class="document-file-icon detail-file-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 3.75h7l5 5V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 6 20V4.5a.75.75 0 0 1 1-.75Z"/><path d="M14 4v5h5M9 13h6M9 16.5h4"/></svg>
+            </span>
+            <span class="document-type">{{ document.document_type }}</span>
+            <span class="detail-added">Added {{ document.created_at|date:"M j, Y" }}</span>
+        </div>
+        <h1>{{ document.title }}<span class="title-period">.</span></h1>
+        <p class="detail-summary">{{ document.summary }}</p>
+        <div class="source-line"><span class="source-file-indicator" aria-hidden="true"></span> Source file <strong>{{ document.source_file }}</strong></div>
+    </section>
+
+    <div class="detail-grid {% if not document.dates.exists and not document.action_items.exists %}detail-grid-sections-only{% endif %}">
+        {% if document.dates.exists or document.action_items.exists %}
+        <div class="detail-main-column">
+            {% if document.dates.exists %}
+            <section class="panel detail-panel">
+                <div class="section-heading">
+                    <div><div class="eyebrow eyebrow-muted">MARK YOUR CALENDAR</div><h2>Important dates</h2></div>
+                    <span class="small-count">{{ document.dates.count }} DATES</span>
+                </div>
+                <div class="detail-date-list">
+                    {% for date_item in dates %}
+                        <article class="detail-date-row">
+                            <span class="detail-date-icon" aria-hidden="true">◷</span>
+                            <div class="detail-row-copy"><h3>{{ date_item.date.description }}</h3><p>{% if date_item.date.normalized_date %}{{ date_item.date.normalized_date|date:"M j, Y" }}{% elif date_item.date.date_text %}{{ date_item.date.date_text }}{% else %}No date specified in the notice{% endif %}</p></div>
+                            {% if date_item.date.normalized_date %}<span class="date-confirmed">CALENDAR DATE</span>{% endif %}
+                            {% if user.is_authenticated %}
+                                {% if date_item.is_relevant %}
+                                    <form method="post" action="{% url 'dismiss-date' date_item.date.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button class="personal-action-button" type="submit">Not relevant to me</button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{% url 'restore-date' date_item.date.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button class="personal-action-button" type="submit">Restore to my dashboard</button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <a class="personal-action-button" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Sign in to customize</a>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if document.action_items.exists %}
+            <section class="panel detail-panel">
+                <div class="section-heading">
+                    <div><div class="eyebrow eyebrow-muted">WHAT TO DO NEXT</div><h2>Action items</h2></div>
+                    <span class="small-count">{{ document.action_items.count }} ITEMS</span>
+                </div>
+                <div class="detail-action-list">
+                    {% for action_item in action_items %}
+                        <article class="detail-action-row {% if action_item.is_completed %}is-completed{% endif %}">
+                            <span class="action-check" aria-hidden="true"></span>
+                            <p>{{ action_item.action.description }}</p>
+                            {% if action_item.action.due_date %}<span class="action-due">Due {{ action_item.action.due_date|date:"M j, Y" }}</span>{% endif %}
+                            {% if user.is_authenticated %}
+                                {% if action_item.is_completed %}
+                                    <form method="post" action="{% url 'restore-action' action_item.action.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button class="personal-action-button" type="submit">Restore to my dashboard</button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{% url 'complete-action' action_item.action.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button class="personal-action-button" type="submit">Mark complete</button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <a class="personal-action-button" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Sign in to update</a>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </div>
+                <div class="honesty-note"><span aria-hidden="true">i</span> Your updates are private to your account; the source notice stays unchanged.</div>
+            </section>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <aside class="detail-side-column">
+            {% if document.sections.exists %}
+            <section class="panel detail-sections-panel">
+                <div class="section-heading">
+                    <div><div class="eyebrow eyebrow-muted">FROM THE SOURCE</div><h2>Sections</h2></div>
+                    <span class="small-count">{{ document.sections.count }} PARTS</span>
+                </div>
+                <div class="section-list">
+                    {% for section_data in sections %}
+                        <article class="source-section">
+                            <span class="section-index">{{ forloop.counter|stringformat:"02d" }}</span>
+                            <div class="source-section-content">
+                                <h3>{{ section_data.section.heading }}</h3>
+                                {% if section_data.items %}
+                                    <div class="source-info-grid">
+                                        {% for item in section_data.items %}
+                                            <p class="source-info-item {% if item.is_total %}source-info-total{% endif %}">{{ item.text }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p>{{ section_data.section.content }}</p>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+            <a class="detail-back-card" href="{% url 'document-list-page' %}">
+                <span class="detail-back-icon" aria-hidden="true">←</span>
+                <span><strong>Back to your library</strong><small>See all campus notices</small></span>
+                <span class="notice-chevron" aria-hidden="true">↗</span>
+            </a>
+        </aside>
+    </div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "myapp/base.html" %}
+
+{% block title %}Add announcement{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-separator">/</span><span>Add announcement</span>{% endblock %}
+
+{% block content %}
+    <!-- Turn a newly shared PDF or image announcement into dashboard-ready information. -->
+    <section class="page-intro upload-intro">
+        <div class="eyebrow"><span class="eyebrow-line"></span> KEEP YOUR CAMPUS PLAN CURRENT</div>
+        <h1>New announcement<span class="title-period">.</span></h1>
+        <p class="welcome-copy">Upload a college notice and CampusPilot will pull out the dates, requirements, and details worth keeping.</p>
+    </section>
+
+    <div class="upload-layout">
+        <section class="upload-card">
+            <div class="upload-card-heading">
+                <span class="upload-heading-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4"/><path d="M5 13v5.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V13"/></svg>
+                </span>
+                <div><h2>Share a notice</h2><p>We’ll read it and organize the useful information.</p></div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="upload-form" id="announcement-upload-form">
+                {% csrf_token %}
+                <label class="upload-dropzone" for="{{ form.original_file.id_for_label }}">
+                    <span class="upload-cloud-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4"/><path d="M5 13v5.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V13"/></svg>
+                    </span>
+                    <strong id="upload-file-label">Choose a PDF or image to upload</strong>
+                    <span>PDF, JPG, PNG, or WEBP · up to 10 MB</span>
+                    {{ form.original_file }}
+                    <span class="upload-file-name" id="upload-file-name" aria-live="polite"></span>
+                </label>
+                {% for error in form.original_file.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+                <button class="button button-dark upload-submit" type="submit" id="upload-submit">
+                    <span class="upload-submit-label">Analyze announcement</span>
+                    <span class="upload-submit-arrow" aria-hidden="true">→</span>
+                </button>
+                <p class="upload-privacy-note"><span aria-hidden="true">i</span> The original file is kept with the extracted notice information.</p>
+            </form>
+        </section>
+
+        <aside class="upload-aside">
+            <section class="upload-how-card">
+                <div class="eyebrow eyebrow-muted">WHAT HAPPENS NEXT</div>
+                <ol class="upload-steps">
+                    <li><span>01</span><div><strong>We read the announcement</strong><p>PDFs and common image formats are supported.</p></div></li>
+                    <li><span>02</span><div><strong>Useful details are organized</strong><p>Dates, requirements, and key sections are extracted.</p></div></li>
+                    <li><span>03</span><div><strong>Your dashboard is updated</strong><p>Review the new notice and its extracted information.</p></div></li>
+                </ol>
+            </section>
+
+            {% if failed_uploads %}
+                <section class="failed-uploads-card">
+                    <div class="eyebrow eyebrow-muted">NEEDS ANOTHER TRY</div>
+                    <h2>Unprocessed uploads</h2>
+                    {% for upload in failed_uploads %}
+                        <article class="failed-upload-row">
+                            <span class="failed-file-icon" aria-hidden="true">!</span>
+                            <div class="failed-upload-copy">
+                                <strong>{{ upload.original_file.name|cut:"announcements/" }}</strong>
+                                {# Earlier generic failures lacked a diagnosis, so guide students to retry instead. #}
+                                {% if upload.error_message == "We couldn't read this announcement. Try a clearer supported PDF or image." %}
+                                    <span>This earlier attempt could not identify the cause. Retry to check it with updated error reporting.</span>
+                                {% else %}
+                                    <span>{{ upload.error_message }}</span>
+                                {% endif %}
+                            </div>
+                            <form method="post" action="{% url 'retry-announcement-upload' upload.id %}">
+                                {% csrf_token %}
+                                <button class="retry-button" type="submit" aria-label="Retry {{ upload.original_file.name }}">Retry</button>
+                            </form>
+                        </article>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        </aside>
+    </div>
+
+    <script>
+        // Show the selected file and prevent duplicate submissions while extraction runs.
+        const uploadInput = document.getElementById("{{ form.original_file.id_for_label }}");
+        const uploadName = document.getElementById("upload-file-name");
+        const uploadLabel = document.getElementById("upload-file-label");
+        const uploadForm = document.getElementById("announcement-upload-form");
+        const uploadButton = document.getElementById("upload-submit");
+        uploadInput.addEventListener("change", () => {
+            const file = uploadInput.files[0];
+            uploadName.textContent = file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB` : "";
+            uploadLabel.textContent = file ? "Announcement selected" : "Choose a PDF or image to upload";
+        });
+        uploadForm.addEventListener("submit", () => {
+            if (!uploadInput.files.length) return;
+            uploadButton.disabled = true;
+            uploadButton.querySelector(".upload-submit-label").textContent = "Reading announcement…";
+            uploadButton.querySelector(".upload-submit-arrow").textContent = "…";
+            uploadForm.classList.add("is-processing");
+        });
+    </script>
+{% endblock %}

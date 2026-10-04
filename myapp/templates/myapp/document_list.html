@@ -1,0 +1,50 @@
+{% extends "myapp/base.html" %}
+
+{% block title %}Documents{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-separator">/</span><span>Documents</span>{% endblock %}
+
+{% block content %}
+    <!-- Organize every ingested college notice into a browsable library. -->
+    <section class="page-intro">
+        <div class="eyebrow"><span class="eyebrow-line"></span> YOUR NOTICE LIBRARY</div>
+        <div class="page-title-row">
+            <div>
+                <h1>Documents<span class="title-period">.</span></h1>
+                <p class="welcome-copy">The important details, without digging through every file.</p>
+            </div>
+            <span class="library-count"><strong>{{ documents|length }}</strong> {% if documents|length == 1 %}NOTICE{% else %}NOTICES{% endif %}</span>
+        </div>
+    </section>
+
+    {% if documents %}
+        <section class="document-grid" aria-label="College notices">
+            {% for document in documents %}
+                <a class="document-card" href="{% url 'document-detail-page' document.id %}">
+                    <div class="document-card-top">
+                        <span class="document-file-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M7 3.75h7l5 5V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 6 20V4.5a.75.75 0 0 1 1-.75Z"/><path d="M14 4v5h5M9 13h6M9 16.5h4"/></svg>
+                        </span>
+                        <span class="document-card-arrow" aria-hidden="true">↗</span>
+                    </div>
+                    <span class="document-type">{{ document.document_type }}</span>
+                    <h2>{{ document.title }}</h2>
+                    <p class="document-summary">{{ document.summary }}</p>
+                    <div class="document-card-bottom">
+                        <span>{{ document.created_at|date:"M j, Y" }}</span>
+                        <span class="document-meta">{{ document.dates.count }} dates <span>·</span> {{ document.action_items.count }} actions</span>
+                    </div>
+                </a>
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="empty-library">
+            <span class="empty-library-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 3.75h7l5 5V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 6 20V4.5a.75.75 0 0 1 1-.75Z"/><path d="M14 4v5h5M9 13h6"/></svg>
+            </span>
+            <div class="eyebrow eyebrow-muted">A FRESH START</div>
+            <h2>No notices yet</h2>
+            <p>Once college documents are added, you’ll find their summaries, dates, and requirements here.</p>
+            <a class="button button-dark" href="{% url 'dashboard' %}">Back to dashboard <span aria-hidden="true">→</span></a>
+        </section>
+    {% endif %}
+{% endblock %}

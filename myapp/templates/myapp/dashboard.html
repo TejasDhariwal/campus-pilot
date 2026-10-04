@@ -1,0 +1,323 @@
+{% extends "myapp/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-separator">/</span><span>Dashboard</span>{% endblock %}
+
+{% block content %}
+    <!-- Surface the next useful notice details without suggesting personal completion is tracked. -->
+    <section class="welcome-row">
+        <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> YOUR CAMPUS, IN ONE PLACE</div>
+            <h1>{{ greeting }}, {{ student_name }}<span class="title-period">.</span></h1>
+            <p class="welcome-copy">{{ motivational_message }}</p>
+        </div>
+        <a class="button button-dark" href="{% url 'document-list-page' %}">
+            Explore documents <span class="button-arrow" aria-hidden="true">↗</span>
+        </a>
+    </section>
+
+    <section class="stat-grid" aria-label="Workspace overview">
+        {% if important_date_count %}
+            <article class="stat-card">
+                <div class="stat-icon stat-icon-lime" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16M8 14h3"/></svg>
+                </div>
+                <div class="stat-copy"><span>IMPORTANT DATES</span><strong>{{ important_date_count }}</strong><small>from your notices</small></div>
+                <span class="stat-trend" aria-hidden="true">↗</span>
+            </article>
+        {% endif %}
+        {% if action_count %}
+            <article class="stat-card">
+                <div class="stat-icon stat-icon-blue" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4L19 7"/><circle cx="12" cy="12" r="9"/></svg>
+                </div>
+                <div class="stat-copy"><span>ACTIONS TO REVIEW</span><strong>{{ action_count }}</strong><small>extracted from notices</small></div>
+                <span class="stat-trend" aria-hidden="true">↗</span>
+            </article>
+        {% endif %}
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-peach" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 3.75h7l5 5V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 6 20V4.5a.75.75 0 0 1 1-.75Z"/><path d="M14 4v5h5M9 13h6M9 16.5h4"/></svg>
+            </div>
+            <div class="stat-copy"><span>RECENT NOTICES</span><strong>{{ document_count }}</strong><small>documents organized</small></div>
+            <span class="stat-trend" aria-hidden="true">↗</span>
+        </article>
+    </section>
+
+    <div class="dashboard-grid {% if not deadlines and not important_dates and not action_items %}dashboard-grid-notice-only{% endif %}">
+        {% if deadlines or important_dates or action_items %}
+        <div class="dashboard-main-column">
+            {% if deadlines %}
+            <section class="panel deadlines-panel">
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow eyebrow-muted">PLAN AHEAD</div>
+                        <h2>Deadline intelligence</h2>
+                    </div>
+                    <span class="heading-icon heading-icon-peach" aria-hidden="true">◷</span>
+                </div>
+                <div class="deadline-list">
+                    {% for item in deadlines %}
+                        <article class="deadline-row">
+                            <span class="deadline-indicator deadline-indicator-{{ item.urgency }}" aria-hidden="true"></span>
+                            <div class="deadline-main">
+                                <h3>{{ item.date.description }}</h3>
+                                <a href="{% url 'document-detail-page' item.document.id %}">{{ item.document.title }}</a>
+                            </div>
+                            <div class="deadline-timing">
+                                <time datetime="{{ item.date.normalized_date|date:'Y-m-d' }}">{{ item.date.normalized_date|date:"M j, Y" }}</time>
+                                {% if item.days_remaining < 0 %}
+                                    <span>{{ item.days_overdue }} days overdue</span>
+                                {% elif item.days_remaining == 0 %}
+                                    <span>Due today</span>
+                                {% elif item.days_remaining == 1 %}
+                                    <span>1 day remaining</span>
+                                {% else %}
+                                    <span>{{ item.days_remaining }} days remaining</span>
+                                {% endif %}
+                            </div>
+                            <span class="deadline-status deadline-status-{{ item.status }}">{{ item.status_label }}</span>
+                        </article>
+                    {% endfor %}
+                </div>
+                <p class="deadline-note">Countdowns are based on the campus calendar date; no student completion status is tracked.</p>
+            </section>
+            {% endif %}
+
+            {% if deadlines or proposed_plan %}
+            <section class="panel proposed-plan-panel">
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow eyebrow-muted">A FLEXIBLE WAY FORWARD</div>
+                        <h2>Proposed plan</h2>
+                    </div>
+                    <span class="heading-icon heading-icon-lime" aria-hidden="true">↗</span>
+                </div>
+                <p class="panel-intro">Suggestions use the requirements in your notices. Adjust the task or target date to fit your schedule.</p>
+
+                {% if user.is_authenticated %}
+                    <form class="plan-add-form" method="post" action="{% url 'add-plan-item' %}">
+                        {% csrf_token %}
+                        <label for="{{ add_plan_form.description.id_for_label }}">Add a plan item</label>
+                        {{ add_plan_form.description }}
+                        {{ add_plan_form.description.errors }}
+                        <div class="plan-add-controls">
+                            <label for="{{ add_plan_form.planned_date.id_for_label }}">Target date</label>
+                            {{ add_plan_form.planned_date }}
+                            <label for="{{ add_plan_form.document_date.id_for_label }}">Related deadline</label>
+                            {{ add_plan_form.document_date }}
+                            <button class="personal-action-button" type="submit">Add to plan</button>
+                        </div>
+                    </form>
+                {% else %}
+                    <p class="plan-signin-note"><a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Sign in</a> to personalize and save your plan.</p>
+                {% endif %}
+
+                {% if proposed_plan %}
+                    <div class="proposed-plan-list">
+                        {% for item in proposed_plan %}
+                            <article class="proposed-plan-row">
+                                <div class="plan-item-copy">
+                                    {% if item.document_date %}
+                                        <span class="plan-item-deadline">For {{ item.document_date.description }}</span>
+                                    {% elif item.action.due_date %}
+                                        <span class="plan-item-deadline">Requirement due {{ item.action.due_date|date:"M j, Y" }}</span>
+                                    {% else %}
+                                        <span class="plan-item-deadline">No clear deadline linked</span>
+                                    {% endif %}
+                                    {% if item.document %}
+                                        <a href="{% url 'document-detail-page' item.document.id %}">{{ item.document.title }}</a>
+                                    {% endif %}
+                                </div>
+                                {% if user.is_authenticated %}
+                                    {% if item.action %}
+                                    <form class="plan-edit-form" method="post" action="{% url 'save-action-plan-item' item.action.id %}">
+                                        {% csrf_token %}
+                                        <label class="visually-hidden" for="plan-description-{{ item.action.id }}">Edit plan item</label>
+                                        <textarea id="plan-description-{{ item.action.id }}" name="description" maxlength="1000" rows="2" required>{{ item.description }}</textarea>
+                                        <div class="plan-edit-controls">
+                                            <label for="plan-date-{{ item.action.id }}">Target date</label>
+                                            <input id="plan-date-{{ item.action.id }}" type="date" name="planned_date" value="{{ item.planned_date|date:'Y-m-d' }}">
+                                            <button class="personal-action-button" type="submit">Save changes</button>
+                                        </div>
+                                    </form>
+                                    <form class="plan-remove-form" method="post" action="{% url 'dismiss-action-plan-item' item.action.id %}">
+                                        {% csrf_token %}
+                                        <button class="plan-remove-button" type="submit">Remove</button>
+                                    </form>
+                                    {% else %}
+                                    <form class="plan-edit-form" method="post" action="{% url 'save-plan-item' item.plan_item.id %}">
+                                        {% csrf_token %}
+                                        <label class="visually-hidden" for="plan-description-{{ item.plan_item.id }}">Edit plan item</label>
+                                        <textarea id="plan-description-{{ item.plan_item.id }}" name="description" maxlength="1000" rows="2" required>{{ item.description }}</textarea>
+                                        <div class="plan-edit-controls">
+                                            <label for="plan-date-{{ item.plan_item.id }}">Target date</label>
+                                            <input id="plan-date-{{ item.plan_item.id }}" type="date" name="planned_date" value="{{ item.planned_date|date:'Y-m-d' }}">
+                                            <button class="personal-action-button" type="submit">Save changes</button>
+                                        </div>
+                                    </form>
+                                    <form class="plan-remove-form" method="post" action="{% url 'remove-plan-item' item.plan_item.id %}">
+                                        {% csrf_token %}
+                                        <button class="plan-remove-button" type="submit">Remove</button>
+                                    </form>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="plan-readonly-copy">
+                                        <p>{{ item.description }}</p>
+                                        {% if item.planned_date %}<span>Suggested target: {{ item.planned_date|date:"M j, Y" }}</span>{% endif %}
+                                    </div>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if deadlines %}
+                    <div class="plan-unlinked-deadlines">
+                        {% for deadline in deadlines %}
+                            {% if not deadline.has_plan_item %}
+                                <p><strong>{{ deadline.date.description }}</strong> has no clear extracted action. Add your own step above if needed.</p>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <p class="deadline-note">This is an editable planning aid, not a record of completed work. Saving changes does not alter the source notice.</p>
+            </section>
+            {% endif %}
+
+            {% if important_dates %}
+            <section class="panel">
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow eyebrow-muted">KEEP AN EYE ON</div>
+                        <h2>Important dates</h2>
+                    </div>
+                    <span class="heading-icon heading-icon-lime" aria-hidden="true">◷</span>
+                </div>
+                {% if important_dates %}
+                    <div class="date-list">
+                        {% for item in important_dates %}
+                            <article class="date-row">
+                                <div class="date-marker {% if item.date.normalized_date %}date-marker-set{% endif %}">
+                                    <span class="date-marker-day">{% if item.date.normalized_date %}{{ item.date.normalized_date|date:"d" }}{% else %}·{% endif %}</span>
+                                    <span class="date-marker-month">{% if item.date.normalized_date %}{{ item.date.normalized_date|date:"M" }}{% else %}DATE{% endif %}</span>
+                                </div>
+                                <div class="date-main">
+                                    <h3>{{ item.date.description }}</h3>
+                                    <p>{{ item.document.title }}</p>
+                                </div>
+                                <div class="date-value">
+                                    {% if item.date.normalized_date %}
+                                        <span>{{ item.date.normalized_date|date:"M j, Y" }}</span>
+                                    {% elif item.date.date_text %}
+                                        <span>{{ item.date.date_text }}</span>
+                                    {% else %}
+                                        <span>Date not specified</span>
+                                    {% endif %}
+                                </div>
+                                <div class="date-row-control">
+                                    {% if user.is_authenticated %}
+                                        <form method="post" action="{% url 'dismiss-date' item.date.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button class="personal-action-button" type="submit">Not relevant to me</button>
+                                        </form>
+                                    {% else %}
+                                        <a class="personal-action-button" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Sign in to customize</a>
+                                    {% endif %}
+                                    <a class="personal-action-button" href="{% url 'document-detail-page' item.document.id %}" aria-label="View {{ item.date.description }} notice">View notice <span aria-hidden="true">→</span></a>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </section>
+            {% endif %}
+
+            {% if action_items %}
+            <section class="panel actions-panel">
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow eyebrow-muted">YOUR NEXT STEPS</div>
+                        <h2>Pending actions</h2>
+                    </div>
+                    <span class="small-count">{{ action_count }} ITEMS</span>
+                </div>
+                <p class="panel-intro">Requirements pulled from notices, ready for you to review.</p>
+                {% if action_items %}
+                    <div class="action-list">
+                        {% for item in action_items %}
+                            <article class="action-row">
+                                <span class="action-check" aria-hidden="true"></span>
+                                <div class="action-main">
+                                    <p>{{ item.action.description }}</p>
+                                    <a href="{% url 'document-detail-page' item.document.id %}">{{ item.document.title }}</a>
+                                </div>
+                                {% if item.action.due_date %}
+                                    <span class="action-due">Due {{ item.action.due_date|date:"M j" }}</span>
+                                {% else %}
+                                    <span class="action-source">From notice</span>
+                                {% endif %}
+                                {% if user.is_authenticated %}
+                                    <form method="post" action="{% url 'complete-action' item.action.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button class="personal-action-button" type="submit">Mark complete</button>
+                                    </form>
+                                {% else %}
+                                    <a class="personal-action-button" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Sign in to update</a>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="honesty-note"><span aria-hidden="true">i</span> Your updates are private to your account; the source notice stays unchanged.</div>
+            </section>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <aside class="dashboard-side-column">
+            <section class="panel recent-panel">
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow eyebrow-muted">FRESH OFF THE NOTICEBOARD</div>
+                        <h2>Recent notices</h2>
+                    </div>
+                    <a class="text-link" href="{% url 'document-list-page' %}">See all <span aria-hidden="true">→</span></a>
+                </div>
+                {% if recent_documents %}
+                    <div class="recent-list">
+                        {% for document in recent_documents %}
+                            <a class="notice-card" href="{% url 'document-detail-page' document.id %}">
+                                <span class="notice-file-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M7 3.75h7l5 5V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 6 20V4.5a.75.75 0 0 1 1-.75Z"/><path d="M14 4v5h5M9 13h6M9 16.5h4"/></svg>
+                                </span>
+                                <span class="notice-card-copy">
+                                    <span class="notice-type">{{ document.document_type }}</span>
+                                    <strong>{{ document.title }}</strong>
+                                    <span class="notice-card-date">Added {{ document.created_at|date:"M j, Y" }}</span>
+                                </span>
+                                <span class="notice-chevron" aria-hidden="true">↗</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state empty-state-compact">
+                        <h3>Your noticeboard is clear</h3>
+                        <p>Newly organized college documents will appear here.</p>
+                    </div>
+                {% endif %}
+                <a class="button button-outline button-full" href="{% url 'document-list-page' %}">Open document library <span aria-hidden="true">→</span></a>
+            </section>
+
+            <section class="tip-card">
+                <div class="tip-topline"><span class="tip-spark" aria-hidden="true">✳</span> A LITTLE CLARITY GOES A LONG WAY</div>
+                <h2>Less searching.<br>More doing.</h2>
+                <p>Your college updates, brought together so you can focus on what comes next.</p>
+                <span class="tip-orbit tip-orbit-one" aria-hidden="true"></span>
+                <span class="tip-orbit tip-orbit-two" aria-hidden="true"></span>
+            </section>
+        </aside>
+    </div>
+{% endblock %}

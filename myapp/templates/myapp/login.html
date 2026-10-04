@@ -1,0 +1,26 @@
+{% extends "myapp/base.html" %}
+
+{% block title %}Sign in{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-separator">/</span><span>Sign in</span>{% endblock %}
+
+{% block content %}
+    <!-- Authenticate before saving private completion and date-relevance choices. -->
+    <section class="auth-card">
+        <div class="eyebrow"><span class="eyebrow-line"></span> YOUR CAMPUSPILOT ACCOUNT</div>
+        <h1>Welcome back<span class="title-period">.</span></h1>
+        <p class="auth-intro">Sign in to keep your task progress and relevant dates personal to you.</p>
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% if form.non_field_errors %}<div class="auth-errors">{{ form.non_field_errors }}</div>{% endif %}
+            <label for="{{ form.username.id_for_label }}">Username</label>
+            {{ form.username }}
+            {% for error in form.username.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+            <label for="{{ form.password.id_for_label }}">Password</label>
+            {{ form.password }}
+            {% for error in form.password.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+            <button class="button button-dark auth-submit" type="submit">Sign in <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="auth-switch">New to CampusPilot? <a href="{% url 'signup' %}">Create an account</a></p>
+    </section>
+{% endblock %}

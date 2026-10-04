@@ -1,0 +1,30 @@
+{% extends "myapp/base.html" %}
+
+{% block title %}Create account{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-separator">/</span><span>Create account</span>{% endblock %}
+
+{% block content %}
+    <!-- Give each student an identity for storing private dashboard updates. -->
+    <section class="auth-card">
+        <div class="eyebrow"><span class="eyebrow-line"></span> MAKE YOUR DASHBOARD YOURS</div>
+        <h1>Create account<span class="title-period">.</span></h1>
+        <p class="auth-intro">Your progress and the dates you hide are saved privately to your account.</p>
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="auth-errors">{{ form.non_field_errors }}</div>{% endif %}
+            <label for="{{ form.username.id_for_label }}">Username</label>
+            {{ form.username }}
+            {% for error in form.username.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+            {% if form.username.help_text %}<span class="auth-help">{{ form.username.help_text|safe }}</span>{% endif %}
+            <label for="{{ form.password1.id_for_label }}">Password</label>
+            {{ form.password1 }}
+            {% for error in form.password1.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+            {% if form.password1.help_text %}<span class="auth-help">{{ form.password1.help_text|safe }}</span>{% endif %}
+            <label for="{{ form.password2.id_for_label }}">Confirm password</label>
+            {{ form.password2 }}
+            {% for error in form.password2.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+            <button class="button button-dark auth-submit" type="submit">Create account <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="auth-switch">Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+    </section>
+{% endblock %}
