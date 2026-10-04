@@ -191,6 +191,7 @@ def process_document_upload(upload):
             "Your upload is saved; please try again shortly.",
         )
         return False
+    
     except DocumentExtractionError:
         logger.exception("Announcement extraction failed for upload %s", upload.pk)
         _mark_upload_failed(
@@ -198,8 +199,16 @@ def process_document_upload(upload):
             "This file format couldn't be processed. Upload a supported PDF or image.",
         )
         return False
-    except Exception:
-        logger.exception("Unexpected announcement processing error for upload %s", upload.pk)
+    except Exception as error:
+        print(
+            f"UNEXPECTED DOCUMENT ERROR | upload={upload.pk} | "
+            f"type={type(error).__name__} | error={error}",
+            flush=True,
+        )
+        logger.exception(
+            "Unexpected announcement processing error for upload %s",
+            upload.pk,
+        )
         _mark_upload_failed(
             upload,
             "Something went wrong while processing this upload. "
